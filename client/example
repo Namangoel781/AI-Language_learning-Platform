@@ -1,0 +1,341 @@
+import React, { useState, useEffect } from "react";
+import {
+  ChevronDown,
+  Book,
+  Video,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const languages = [
+  "English",
+  "Spanish",
+  "French",
+  "German",
+  "Chinese",
+  "Japanese",
+];
+const proficiencyLevels = ["Beginner", "Intermediate", "Advanced"];
+
+const lessonsByLevel = {
+  Beginner: [
+    {
+      id: 1,
+      title: "Basic Greetings",
+      videoUrl: "https://example.com/beginner-lesson1.mp4",
+    },
+    {
+      id: 2,
+      title: "Numbers 1-10",
+      videoUrl: "https://example.com/beginner-lesson2.mp4",
+    },
+    {
+      id: 3,
+      title: "Common Phrases",
+      videoUrl: "https://example.com/beginner-lesson3.mp4",
+    },
+  ],
+  Intermediate: [
+    {
+      id: 1,
+      title: "Conversational Skills",
+      videoUrl: "https://example.com/intermediate-lesson1.mp4",
+    },
+    {
+      id: 2,
+      title: "Grammar Structures",
+      videoUrl: "https://example.com/intermediate-lesson2.mp4",
+    },
+    {
+      id: 3,
+      title: "Vocabulary Expansion",
+      videoUrl: "https://example.com/intermediate-lesson3.mp4",
+    },
+  ],
+  Advanced: [
+    {
+      id: 1,
+      title: "Idiomatic Expressions",
+      videoUrl: "https://example.com/advanced-lesson1.mp4",
+    },
+    {
+      id: 2,
+      title: "Advanced Writing",
+      videoUrl: "https://example.com/advanced-lesson2.mp4",
+    },
+    {
+      id: 3,
+      title: "Cultural Nuances",
+      videoUrl: "https://example.com/advanced-lesson3.mp4",
+    },
+  ],
+};
+
+export default function ProgressiveLanguageLearningApp() {
+  const [formData, setFormData] = useState({
+    nativeLanguage: "",
+    learningLanguage: "",
+    proficiencyLevel: "",
+  });
+  const [currentLevel, setCurrentLevel] = useState("Beginner");
+  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [showLessons, setShowLessons] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showCongratulations, setShowCongratulations] = useState(false);
+  const [completedLevels, setCompletedLevels] = useState([]);
+
+  const availableLessons = lessonsByLevel[currentLevel];
+
+  useEffect(() => {
+    if (showLessons) {
+      setProgress((currentLessonIndex / availableLessons.length) * 100);
+    }
+  }, [currentLessonIndex, showLessons, availableLessons]);
+
+  const handleInputChange = (name, value) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setShowLessons(true);
+    setCurrentLevel(formData.proficiencyLevel || "Beginner");
+    setCurrentLessonIndex(0);
+  };
+
+  const handleNextLesson = () => {
+    if (currentLessonIndex < availableLessons.length - 1) {
+      setCurrentLessonIndex((prevIndex) => prevIndex + 1);
+    } else {
+      setCompletedLevels((prev) => [...prev, currentLevel]);
+      setShowCongratulations(true);
+      if (currentLevel !== "Advanced") {
+        const nextLevel =
+          currentLevel === "Beginner" ? "Intermediate" : "Advanced";
+        setCurrentLevel(nextLevel);
+        setCurrentLessonIndex(0);
+      }
+    }
+  };
+
+  const handlePreviousLesson = () => {
+    if (currentLessonIndex > 0) {
+      setCurrentLessonIndex((prevIndex) => prevIndex - 1);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white p-4 sm:p-6 lg:p-8">
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center text-blue-800">
+            Progressive Language Learning
+          </CardTitle>
+          <CardDescription className="text-center text-gray-600">
+            Embark on your language journey
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!showLessons ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="nativeLanguage">Native Language</Label>
+                <Select
+                  value={formData.nativeLanguage}
+                  onValueChange={(value) =>
+                    handleInputChange("nativeLanguage", value)
+                  }
+                >
+                  <SelectTrigger id="nativeLanguage">
+                    <SelectValue placeholder="Select your native language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {lang}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="learningLanguage">Language to Learn</Label>
+                <Select
+                  value={formData.learningLanguage}
+                  onValueChange={(value) =>
+                    handleInputChange("learningLanguage", value)
+                  }
+                >
+                  <SelectTrigger id="learningLanguage">
+                    <SelectValue placeholder="Select language to learn" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages
+                      .filter((lang) => lang !== formData.nativeLanguage)
+                      .map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {lang}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Proficiency Level</Label>
+                <RadioGroup
+                  value={formData.proficiencyLevel}
+                  onValueChange={(value) =>
+                    handleInputChange("proficiencyLevel", value)
+                  }
+                  className="flex space-x-4"
+                >
+                  {proficiencyLevels.map((level) => (
+                    <div key={level} className="flex items-center space-x-2">
+                      <RadioGroupItem value={level} id={level} />
+                      <Label htmlFor={level}>{level}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <Button type="submit" className="w-full">
+                Start Learning
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <Accordion type="single" collapsible className="w-full">
+                {Object.entries(lessonsByLevel).map(([level, lessons]) => (
+                  <AccordionItem value={level} key={level}>
+                    <AccordionTrigger className="text-lg font-semibold">
+                      {level} Level
+                      {completedLevels.includes(level) && (
+                        <CheckCircle className="ml-2 h-5 w-5 text-green-500" />
+                      )}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="space-y-2">
+                        {lessons.map((lesson) => (
+                          <li
+                            key={lesson.id}
+                            className="flex items-center space-x-2"
+                          >
+                            <Video className="h-4 w-4" />
+                            <span>{lesson.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-blue-800">
+                  {currentLevel} Lessons
+                </h3>
+                <span className="text-sm text-gray-600">
+                  Lesson {currentLessonIndex + 1} of {availableLessons.length}
+                </span>
+              </div>
+              <Progress value={progress} className="w-full" />
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {availableLessons[currentLessonIndex].title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-w-16 aspect-h-9">
+                    <video
+                      src={availableLessons[currentLessonIndex].videoUrl}
+                      controls
+                      className="w-full h-full object-cover rounded-lg"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button
+                    onClick={handlePreviousLesson}
+                    disabled={currentLessonIndex === 0}
+                    variant="outline"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Previous Lesson
+                  </Button>
+                  <Button onClick={handleNextLesson}>
+                    {currentLessonIndex === availableLessons.length - 1 &&
+                    currentLevel !== "Advanced"
+                      ? "Next Level"
+                      : "Next Lesson"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showCongratulations} onOpenChange={setShowCongratulations}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Congratulations!</DialogTitle>
+            <DialogDescription>
+              You've completed the {currentLevel} level!
+              {currentLevel === "Advanced"
+                ? " You've mastered all levels. Well done on your language learning journey!"
+                : " Get ready for the next level of challenges."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowCongratulations(false)}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
