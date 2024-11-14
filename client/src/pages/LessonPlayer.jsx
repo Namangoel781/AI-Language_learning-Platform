@@ -19,7 +19,6 @@ export const VideoPlayer = () => {
           { withCredentials: true }
         );
 
-        console.log("Video Data:", response.data.lesson); // Check the response data
         if (response.data.lesson && response.data.lesson.video_url) {
           setVideo(response.data.lesson);
         } else {
@@ -60,15 +59,16 @@ export const VideoPlayer = () => {
             <ArrowLeft className="mr-2" /> Back to Lessons
           </Link>
         </div>
-        <main className="max-w-5xl mx-auto py-8">
-          <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
-          <div className="relative aspect-video">
-            {/* Use ReactPlayer for YouTube URL */}
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4">{video.title}</h1>
+          <div className="relative aspect-video mb-4">
             {video.video_url.includes("youtube.com") ? (
               <ReactPlayer
                 url={video.video_url}
                 controls
-                className="w-full h-full object-cover rounded-lg"
+                className="react-player w-full h-full rounded-lg"
+                width="100%"
+                height="100%"
               />
             ) : (
               <video
@@ -79,7 +79,9 @@ export const VideoPlayer = () => {
               />
             )}
           </div>
-          <p className="mt-4 text-gray-300">{video.description}</p>
+          <p className="mt-4 text-gray-300 text-sm sm:text-base">
+            {video.description}
+          </p>
         </main>
       </div>
     </>

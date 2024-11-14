@@ -11,6 +11,7 @@ import axios from "axios";
 import Home from "./pages/Home";
 import { LessonList } from "./pages/LessonList";
 import { VideoPlayer } from "./pages/LessonPlayer";
+import AudioRecorder from "./pages/AudioRecorder";
 
 const App = () => {
   const [formData, setFormData] = useState({
@@ -85,6 +86,21 @@ const App = () => {
                 <Navigate to="/select-language" />
               ) : (
                 <Home />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+
+        <Route
+          path="/practice-1"
+          element={
+            isAuthenticated ? (
+              user?.needsLanguageSetup ? (
+                <Navigate to="/" />
+              ) : (
+                <AudioRecorder />
               )
             ) : (
               <Navigate to="/login" />
