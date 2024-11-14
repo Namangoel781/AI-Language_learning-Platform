@@ -3,6 +3,7 @@ const passport = require("./auth/googleAuth");
 const session = require("express-session");
 const path = require("path");
 const cors = require("cors");
+const helmet = require("helmet");
 require("dotenv").config();
 
 const { isAuthenticated } = require("./middleware/authMiddleware");
@@ -11,7 +12,6 @@ const userRoutes = require("./routes/userRoutes");
 const lessonRoutes = require("./routes/lessonsRoutes");
 
 const supabase = require("./supabase");
-const helmet = require("helmet");
 
 const app = express();
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
@@ -63,33 +63,26 @@ app.get(
     session: true,
   }),
   (req, res) => {
-    if (!req.user) {
+    if (req.user?.needsLanguageSetup) {
       console.error("User object is missing in req.user");
-      return res.redirect(`${CLIENT_URL}/login`);
+      return res.redirect(`${CLIENT_URL}/select-language`);
     }
 
     console.log("Authenticated user:", req.user);
 
-    if (req.user.needsLanguageSetup) {
-      console.log("Redirecting to /select-language");
-      return res.redirect(`${CLIENT_URL}/select-language`);
-    }
-    console.log("Redirecting to Home Page");
+    // if (req.user.needsLanguageSetup) {
+    //   console.log("Redirecting to /select-language");
+    //   return res.redirect(`${CLIENT_URL}/select-language`);
+    // }
+    // console.log("Redirecting to Home Page");
     return res.redirect(CLIENT_URL);
   }
 );
 
-app.get("/api/check-auth", (req, res) => {
-  if (req.isAuthenticated()) {
-    return res.json({
-      isAuthenticated: true,
-      user: req.user, // Make sure the user object includes the needsLanguageSetup flag
-    });
-  }
-
-  return res.json({
-    isAuthenticated: false,
-    user: null,
+app.get("/api/check-auth", isAuthenticated, (req, res) => {
+  res.json({
+    isAuthenticated: true,
+    user: req.user,
   });
 });
 

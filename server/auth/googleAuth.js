@@ -1,6 +1,7 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const { supabase } = require("../supabase");
+const client = require("../redis");
 require("dotenv").config();
 
 passport.use(
@@ -12,6 +13,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       const { email, name } = profile._json;
+      // const userId = profile.id;
 
       try {
         // Attempt to retrieve the user by email
@@ -27,14 +29,15 @@ passport.use(
         }
 
         if (user) {
+          console.log(
+            `Setting token for userId: ${user.id.toString()} with token: ${accessToken}`
+          );
+          await client.set(user.id.toString(), accessToken, {
+            EX: 60 * 60 * 24,
+          });
+
           const needsLanguageSetup =
             !user.native_language || !user.learning_language;
-          console.log(
-            "Existing user:",
-            user,
-            "Needs language setup:",
-            needsLanguageSetup
-          );
           return done(null, { ...user, needsLanguageSetup });
         } else {
           const { error: upsertError } = await supabase.from("users").upsert(
@@ -66,8 +69,13 @@ passport.use(
             );
             return done(new Error("User creation and retrieval failed"));
           }
+          console.log(
+            `Setting token for new userId: ${newUser.id.toString()} with token: ${accessToken}`
+          );
 
-          console.log("New user created and retrieved:", newUser);
+          await client.set(newUser.id, String(accessToken), {
+            EX: 60 * 60 * 24,
+          });
           return done(null, { ...newUser, needsLanguageSetup: true });
         }
       } catch (err) {
@@ -78,18 +86,11 @@ passport.use(
   )
 );
 
-// Serialize the user by storing their ID in the session
 passport.serializeUser((user, done) => {
-  console.log("Serializing user:", user);
   done(null, { id: user.id, needsLanguageSetup: user.needsLanguageSetup });
 });
 
-// Deserialize the user by retrieving their data from the database using their ID
 passport.deserializeUser(async (userObj, done) => {
-  // if (!userObj) {
-  //   return done(new Error("Invalid user ID during deserialization"));
-  // }
-
   try {
     const { data: user, error } = await supabase
       .from("users")
@@ -103,7 +104,6 @@ passport.deserializeUser(async (userObj, done) => {
     }
     // Ensure needsLanguageSetup is passed after deserialization
     user.needsLanguageSetup = !user.native_language || !user.learning_language;
-    console.log("Deserialized user:", user);
     done(null, user);
   } catch (err) {
     console.error("Unexpected error during deserialization:", err);
