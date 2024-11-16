@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowRight,
+  Loader,
   Mic,
   Square,
   Pause,
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import "../assets/WaveForm.css";
 import Navbar from "./Nav";
 
 const AudioRecorder = () => {
@@ -31,6 +33,8 @@ const AudioRecorder = () => {
   const [targetLanguage, setTargetLanguage] = useState("en");
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const audioChunks = useRef([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingGenerate, setLoadingGenerate] = useState(false);
 
   const startRecording = async () => {
     try {
@@ -61,8 +65,8 @@ const AudioRecorder = () => {
       };
 
       setMediaRecorder(recorder);
-      recorder.start();
       setRecording(true);
+      recorder.start();
     } catch (error) {
       console.error("Error starting recording:", error);
     }
@@ -101,20 +105,19 @@ const AudioRecorder = () => {
   };
 
   const generateString = () => {
+    setLoadingGenerate(true);
     axios
       .get("http://ailangtest.ap-south-1.elasticbeanstalk.com/generate", {
         params: { language },
       })
       .then((response) => setGeneratedString(response.data))
-      .catch((error) => console.error("Error generating string:", error));
+      .catch((error) => console.error("Error generating string:", error))
+      .finally(() => setLoadingGenerate(false));
   };
 
   const checkResult = () => {
-    if (!transcription || !generatedString) {
-      console.warn("Transcription or generated text is missing");
-      return;
-    }
-
+    if (!transcription || !generatedString) return;
+    setLoading(true);
     axios
       .get("http://ailangtest.ap-south-1.elasticbeanstalk.com/ask", {
         params: {
@@ -125,7 +128,8 @@ const AudioRecorder = () => {
         },
       })
       .then((response) => setResult(response.data))
-      .catch((error) => console.error("Error checking result:", error));
+      .catch((error) => console.error("Error:", error))
+      .finally(() => setLoading(false));
   };
 
   const formatResult = (resultText) => {
@@ -211,9 +215,36 @@ const AudioRecorder = () => {
               <CardContent className="p-8 space-y-6">
                 <Button
                   onClick={generateString}
-                  className="w-full bg-slate-900 hover:bg-slate-950 text-white font-medium py-6 transition-colors duration-200 shadow-lg hover:shadow-slate-600"
+                  disabled={loadingGenerate}
+                  className="w-full bg-slate-900 hover:bg-slate-950 text-white font-medium py-6 transition-colors duration-200 shadow-lg hover:shadow-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Generate New Phrase
+                  {loadingGenerate ? (
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="h-5 w-5 animate-spin text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8z"
+                        ></path>
+                      </svg>
+                      <span>Generating...</span>
+                    </div>
+                  ) : (
+                    "Generate New Phrase"
+                  )}
                 </Button>
 
                 {generatedString && (
@@ -226,34 +257,21 @@ const AudioRecorder = () => {
                   </div>
                 )}
 
-                <div className="flex justify-center space-x-4 py-4">
+                <div className="flex justify-center items-center">
                   <Button
                     onClick={recording ? stopRecording : startRecording}
-                    className={`p-8 rounded-full shadow-lg transition-all duration-200 ${
-                      recording
-                        ? "bg-red-600 hover:bg-red-700 animate-pulse"
-                        : "bg-slate-900 hover:bg-slate-950 shadow-lg hover:shadow-slate-600"
-                    }`}
+                    className="p-8 rounded-full bg-slate-900 hover:bg-slate-950 shadow-lg"
                   >
                     {recording ? (
-                      <Square className="h-6 w-6" />
+                      <div className="wave-container">
+                        <div className="wave"></div>
+                        <div className="wave"></div>
+                        <div className="wave"></div>
+                      </div>
                     ) : (
-                      <Mic className="h-6 w-6" />
+                      <Mic className="h-6 w-6 text-white" />
                     )}
                   </Button>
-
-                  {recording && (
-                    <Button
-                      onClick={paused ? resumeRecording : pauseRecording}
-                      className="p-8 rounded-full bg-yellow-600 hover:bg-yellow-700 shadow-lg transition-all duration-200"
-                    >
-                      {paused ? (
-                        <Mic className="h-6 w-6" />
-                      ) : (
-                        <Pause className="h-6 w-6" />
-                      )}
-                    </Button>
-                  )}
                 </div>
 
                 {audioUrl && (
@@ -277,9 +295,15 @@ const AudioRecorder = () => {
                 <Button
                   onClick={checkResult}
                   disabled={!transcription || !generatedString}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 transition-colors duration-200 shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Check Result
+                  {loading ? (
+                    <div className="flex items-center space-x-2 ">
+                      <Loader className="h-5 w-5 animate-spin" />
+                      <span>Analyzing...</span>
+                    </div>
+                  ) : (
+                    "Check Result"
+                  )}
                 </Button>
 
                 {result && (
@@ -296,7 +320,7 @@ const AudioRecorder = () => {
                 <Button
                   variant="outline"
                   onClick={clearRecording}
-                  className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 transition-colors duration-200"
+                  className="w-full border-gray-600 text-black hover:bg-slate-200 transition-colors duration-200"
                 >
                   Clear All
                 </Button>

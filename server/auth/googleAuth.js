@@ -1,8 +1,18 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const { supabase } = require("../supabase");
 const client = require("../redis");
+const { v4: uuidv4 } = require("uuid"); // For generating UUID tokens
 require("dotenv").config();
+const { Pool } = require("pg");
+// const { supabase } = require("../supabase");
+
+const pool = new Pool({
+  user: process.env.DATABASE_USER, // Replace with your PostgreSQL username
+  host: process.env.DATABASE_HOST,
+  database: "AI-Language-Platform",
+  password: process.env.DATABASE_PASSWORD,
+  port: process.env.DATABASE_PORT,
+});
 
 passport.use(
   new GoogleStrategy(
@@ -13,73 +23,46 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       const { email, name } = profile._json;
-      // const userId = profile.id;
 
       try {
-        // Attempt to retrieve the user by email
-        const { data: user, error: fetchError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", email)
-          .single();
+        // Check if user exists in the database
+        const userQuery = await pool.query(
+          "SELECT * FROM users WHERE email = $1",
+          [email]
+        );
 
-        if (fetchError && fetchError.code !== "PGRST116") {
-          console.error("Error retrieving user:", fetchError);
-          return done(fetchError);
+        let currentUser = userQuery.rows[0];
+
+        if (!currentUser) {
+          const insertQuery = `
+            INSERT INTO users (email, name, native_language, learning_language, needs_language_setup)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *;
+          `;
+          const insertValues = [email, name, null, null, true];
+          const insertResult = await pool.query(insertQuery, insertValues);
+
+          currentUser = insertResult.rows[0];
         }
 
-        if (user) {
-          console.log(
-            `Setting token for userId: ${user.id.toString()} with token: ${accessToken}`
-          );
-          await client.set(user.id.toString(), accessToken, {
-            EX: 60 * 60 * 24,
-          });
+        const { id, needs_language_setup } = currentUser;
 
-          const needsLanguageSetup =
-            !user.native_language || !user.learning_language;
-          return done(null, { ...user, needsLanguageSetup });
-        } else {
-          const { error: upsertError } = await supabase.from("users").upsert(
-            [
-              {
-                email,
-                name,
-                native_language: null,
-                learning_language: null,
-              },
-            ],
-            { onConflict: ["email"] }
-          );
-          if (upsertError) {
-            console.error("Error creating new user:", upsertError);
-            return done(new Error("User creation failed"));
-          }
-
-          const { data: newUser, error: fetchNewUserError } = await supabase
-            .from("users")
-            .select("*")
-            .eq("email", email)
-            .single();
-
-          if (fetchNewUserError || !newUser) {
-            console.error(
-              "Error fetching new user after upsert:",
-              fetchNewUserError
-            );
-            return done(new Error("User creation and retrieval failed"));
-          }
-          console.log(
-            `Setting token for new userId: ${newUser.id.toString()} with token: ${accessToken}`
-          );
-
-          await client.set(newUser.id, String(accessToken), {
-            EX: 60 * 60 * 24,
-          });
-          return done(null, { ...newUser, needsLanguageSetup: true });
+        // Generate session token and store in Redis
+        const sessionToken = uuidv4();
+        try {
+          await client.set(sessionToken, currentUser.id, { EX: 60 * 60 * 24 }); // 24-hour expiry
+          // console.log("Session token stored in Redis:", sessionToken);
+        } catch (redisError) {
+          console.error("Error storing session token in Redis:", redisError);
+          return done(redisError);
         }
+        return done(null, {
+          ...currentUser,
+          sessionToken,
+          needsLanguageSetup: needs_language_setup,
+        });
       } catch (err) {
-        console.error("Unexpected error during Google authentication:", err);
+        console.error("Error in Google Strategy:", err);
         return done(err);
       }
     }
@@ -87,26 +70,34 @@ passport.use(
 );
 
 passport.serializeUser((user, done) => {
-  done(null, { id: user.id, needsLanguageSetup: user.needsLanguageSetup });
+  // console.log("Serializing User:", user);
+  done(null, { id: user.id, sessionToken: user.sessionToken });
 });
 
-passport.deserializeUser(async (userObj, done) => {
+passport.deserializeUser(async ({ id, sessionToken }, done) => {
   try {
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userObj.id)
-      .single();
-
-    if (error) {
-      console.error("Error during deserialization:", error);
-      return done(error);
+    const userId = await client.get(sessionToken);
+    if (!userId) {
+      console.error(
+        "No user ID found in Redis for session token:",
+        sessionToken
+      );
+      return done(null, false);
     }
-    // Ensure needsLanguageSetup is passed after deserialization
-    user.needsLanguageSetup = !user.native_language || !user.learning_language;
-    done(null, user);
+
+    const userQuery = await pool.query("SELECT * FROM users WHERE id = $1", [
+      userId,
+    ]);
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      console.error("User not found in database for ID:", userId);
+      return done(null, false);
+    }
+
+    return done(null, user);
   } catch (err) {
-    console.error("Unexpected error during deserialization:", err);
+    console.error("Error in deserializeUser:", err.message);
     done(err);
   }
 });

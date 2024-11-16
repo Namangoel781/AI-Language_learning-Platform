@@ -1,9 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { ArrowLeft } from "lucide-react";
 import ReactPlayer from "react-player";
 import Navbar from "./Nav";
+
+const Loader = () => {
+  return (
+    <div className="flex items-center justify-center h-screen bg-slate-900">
+      <div className="animate-pulse space-y-4 w-1/2">
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-10 bg-gray-700 rounded"></div>
+      </div>
+    </div>
+  );
+};
 
 export const VideoPlayer = () => {
   const { id } = useParams();
@@ -36,7 +50,7 @@ export const VideoPlayer = () => {
   }, [id]);
 
   if (loading) {
-    return <div className="text-white">Loading video...</div>;
+    return <Loader />;
   }
 
   if (error) {

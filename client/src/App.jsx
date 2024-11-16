@@ -17,7 +17,6 @@ const App = () => {
   const [formData, setFormData] = useState({
     nativeLanguage: "",
     learningLanguage: "",
-    proficiencyLevel: "",
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -32,8 +31,12 @@ const App = () => {
             withCredentials: true,
           }
         );
+        const userData = response.data.user;
         setIsAuthenticated(response.data.isAuthenticated);
-        setUser(response.data.user);
+        setUser({
+          ...userData,
+          needsLanguageSetup: userData.needs_language_setup,
+        });
       } catch (error) {
         console.error("Error checking auth status:", error);
         setUser(null);
@@ -42,13 +45,49 @@ const App = () => {
         setLoading(false);
       }
     };
+
     checkAuthStatus();
   }, []);
+
+  useEffect(() => {
+    const completeLanguageSetup = async () => {
+      if (user?.needsLanguageSetup) {
+        try {
+          // Call the complete language setup API
+          await axios.post(
+            "http://localhost:3000/api/complete-language-setup",
+            {
+              userId: user.id,
+              nativeLanguage: formData.nativeLanguage,
+              learningLanguage: formData.learningLanguage,
+            },
+            { withCredentials: true }
+          );
+
+          // Update the user state to reflect the changes
+          setUser((prevUser) => ({
+            ...prevUser,
+            needsLanguageSetup: false,
+          }));
+
+          console.log("Language setup completed.");
+        } catch (error) {
+          console.error("Error completing language setup:", error);
+        }
+      }
+    };
+
+    if (isAuthenticated && user?.needsLanguageSetup) {
+      completeLanguageSetup();
+    }
+  }, [isAuthenticated, user, formData]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-900">
         <div className="animate-pulse space-y-4 w-1/2">
+          <div className="h-6 bg-gray-700 rounded"></div>
+          <div className="h-6 bg-gray-700 rounded"></div>
           <div className="h-6 bg-gray-700 rounded"></div>
           <div className="h-6 bg-gray-700 rounded"></div>
           <div className="h-10 bg-gray-700 rounded"></div>
@@ -60,7 +99,6 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Route for /select-language, only accessible if user needs language setup */}
         <Route
           path="/select-language"
           element={
@@ -76,8 +114,6 @@ const App = () => {
             )
           }
         />
-
-        {/* Home route, accessible only if the user is authenticated */}
         <Route
           path="/"
           element={
@@ -92,13 +128,12 @@ const App = () => {
             )
           }
         />
-
         <Route
           path="/practice-1"
           element={
             isAuthenticated ? (
               user?.needsLanguageSetup ? (
-                <Navigate to="/" />
+                <Navigate to="/select-language" />
               ) : (
                 <AudioRecorder />
               )
@@ -107,11 +142,35 @@ const App = () => {
             )
           }
         />
-
-        {/* Login route */}
+        <Route
+          path="/lessons"
+          element={
+            isAuthenticated ? (
+              user?.needsLanguageSetup ? (
+                <Navigate to="/select-language" />
+              ) : (
+                <LessonList />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/video/:id"
+          element={
+            isAuthenticated ? (
+              user?.needsLanguageSetup ? (
+                <Navigate to="/select-language" />
+              ) : (
+                <VideoPlayer />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
         <Route path="/login" element={<Login />} />
-        <Route path="/lessons" element={<LessonList />} />
-        <Route path="/video/:id" element={<VideoPlayer />} />
       </Routes>
     </Router>
   );

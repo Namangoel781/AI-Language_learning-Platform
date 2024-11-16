@@ -1,4 +1,13 @@
-const { supabase } = require("../supabase");
+// const { supabase } = require("../supabase");
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  user: process.env.DATABASE_USER, // Replace with your PostgreSQL username
+  host: process.env.DATABASE_HOST,
+  database: "AI-Language-Platform",
+  password: process.env.DATABASE_PASSWORD,
+  port: process.env.DATABASE_PORT,
+});
 
 const getLessons = async (req, res) => {
   const { learning_language } = req.user;
@@ -10,14 +19,13 @@ const getLessons = async (req, res) => {
   }
 
   try {
-    const { data: lessons, error } = await supabase
-      .from("lessons")
-      .select("*")
-      .eq("language", learning_language);
+    const query = "SELECT * FROM lessons WHERE language = $1";
+    const { rows: lessons } = await pool.query(query, [learning_language]);
 
-    if (error) {
-      console.error("Error fetching lessons:", error);
-      return res.status(500).json({ error: "Failed to fetch lessons" });
+    if (lessons.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No lessons found for the specified language" });
     }
 
     res.json({ lessons });
@@ -31,19 +39,15 @@ const getLessonById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Query Supabase for a lesson by its ID
-    const { data: lesson, error } = await supabase
-      .from("lessons")
-      .select("*")
-      .eq("id", id) // Use the id from the URL parameter
-      .single(); // .single() ensures it returns a single object instead of an array
+    const query = "SELECT * FROM lessons WHERE id = $1";
+    const { rows } = await pool.query(query, [id]);
 
-    if (error) {
-      console.error("Error fetching lesson:", error);
+    if (rows.length === 0) {
       return res.status(404).json({ error: "Lesson not found" });
     }
 
-    return res.json({ lesson });
+    const lesson = rows[0]; // Extract the single lesson from the rows array
+    res.json({ lesson });
   } catch (error) {
     console.error("Error fetching lesson:", error);
     return res.status(500).json({ error: "Server error" });

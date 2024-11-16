@@ -39,6 +39,7 @@ export default function LanguageSelection() {
     e.preventDefault();
 
     try {
+      // Step 1: Save language preferences
       await axios.post(
         "http://localhost:3000/api/users/set-languages",
         {
@@ -50,22 +51,41 @@ export default function LanguageSelection() {
         }
       );
 
-      // Using react-toastify's toast function correctly
-      toast.success("Your language preferences have been saved.", {
-        position: "top-right", // Correct position string
-        autoClose: 3000,
-      });
+      // Step 2: Complete language setup and set `needs_language_setup` to false
+      const userId = 9; // Replace with dynamic userId if needed
+
+      await axios.post(
+        "http://localhost:3000/api/complete-language-setup",
+        {
+          userId: userId,
+          nativeLanguage: nativeLanguage,
+          learningLanguage: learningLanguage,
+        },
+        { withCredentials: true }
+      );
+
+      // Step 3: Notify success
+      toast.success(
+        "Your language preferences have been saved and setup completed.",
+        {
+          position: "top-right", // Correct position string
+          autoClose: 3000,
+        }
+      );
 
       // Redirect after 3 seconds
       setTimeout(() => {
-        window.location.href = "http://localhost:5173/";
+        window.location.href = "http://localhost:5173/"; // Adjust the URL based on your app's routing
       }, 3000);
     } catch (error) {
-      console.error("Error saving languages:", error);
+      console.error(
+        "Error saving languages or completing language setup:",
+        error
+      );
 
-      // Displaying error message with react-toastify
+      // Step 4: Handle error
       toast.error(
-        "There was an error saving your languages. Please try again.",
+        "There was an error saving your languages or completing the setup. Please try again.",
         {
           position: "top-right", // Correct position string
           autoClose: 3000,

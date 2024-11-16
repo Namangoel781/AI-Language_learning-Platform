@@ -1,8 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { Play } from "lucide-react";
 import Navbar from "./Nav";
+
+const Loader = () => {
+  return (
+    <div className="flex items-center justify-center h-screen bg-slate-900">
+      <div className="animate-pulse space-y-4 w-1/2">
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-6 bg-gray-700 rounded"></div>
+        <div className="h-10 bg-gray-700 rounded"></div>
+      </div>
+    </div>
+  );
+};
 
 const defaultThumbnail =
   "https://via.placeholder.com/640x360.png?text=Video+Not+Available";
@@ -21,8 +35,6 @@ const VideoCard = ({ video }) => {
     video.video_url && video.video_url.includes("youtube.com")
       ? getYouTubeThumbnail(video.video_url)
       : defaultThumbnail;
-
-  console.log("Thumbnail URL: ", thumbnailUrl); // Check if the URL is being set correctly
 
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all duration-300 transform hover:scale-105">
@@ -49,6 +61,7 @@ export const LessonList = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const location = useLocation();
 
   // Fetch lessons from the backend
   useEffect(() => {
@@ -70,7 +83,7 @@ export const LessonList = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-white">Loading lessons...</div>;
+    return <Loader />;
   }
 
   if (error) {

@@ -1,25 +1,34 @@
 const client = require("../redis");
 
 async function isAuthenticated(req, res, next) {
-  const userId = req.user?.id;
+  const sessionToken = req.cookies?.session_token; // Get the session token from the cookies
 
-  if (req.isAuthenticated() && userId) {
+  if (req.isAuthenticated() && sessionToken) {
+    // Check if the user is authenticated and session token is available
     try {
-      const userIdString = userId.toString();
-      console.log(`userId: ${userIdString} (type: ${typeof userIdString})`);
-      const token = await client.get(userIdString); // Ensure the userId is a string
-      if (token) {
-        console.log(`Token found for userId: ${userIdString}`);
+      // console.log(
+      //   `sessionToken: ${sessionToken} (type: ${typeof sessionToken})`
+      // );
+
+      // Fetch the userId associated with the session token from Redis
+      const userId = await client.get(sessionToken); // Use sessionToken as key in Redis
+      if (userId) {
+        // console.log(`UserId found for sessionToken: ${sessionToken}`);
+        // If the userId is found, attach it to req.user and proceed to next middleware
+        req.user.id = userId; // Set the userId in req.user
         return next();
       } else {
-        console.log(`Token not found for userId: ${userIdString}`);
+        console.log(
+          `Token not found in Redis for sessionToken: ${sessionToken}`
+        );
       }
     } catch (error) {
-      console.error("Error fetching token from Redis:", error);
+      console.error("Error fetching token from Redis:", error); // Handle Redis errors
     }
   }
 
-  res.status(401).json({ error: "User not authenticated" }); // If not authenticated or userId is missing
+  // If no valid session token is found, respond with 401 Unauthorized
+  res.status(401).json({ error: "User not authenticated" });
 }
 
 module.exports = { isAuthenticated };
