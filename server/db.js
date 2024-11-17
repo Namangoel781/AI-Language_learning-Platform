@@ -52,8 +52,7 @@ const pool = new Pool({
         email VARCHAR(255) NOT NULL UNIQUE,
         name VARCHAR(255) NOT NULL,
         native_language VARCHAR(255),
-        learning_language VARCHAR(255),
-        needs_language_setup BOOLEAN DEFAULT TRUE
+        learning_language VARCHAR(255)
       );
     `);
     console.log("Table 'users' created successfully!");

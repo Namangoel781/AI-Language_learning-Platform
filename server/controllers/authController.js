@@ -28,6 +28,7 @@ const logout = (req, res, next) => {
 
     req.logout(async (err) => {
       if (err) {
+        console.error("Error during req.logout:", err);
         return next(err);
       }
 
@@ -40,7 +41,7 @@ const logout = (req, res, next) => {
         secure: process.env.NODE_ENV === "production",
         sameSite: "Strict",
       });
-      res.redirect("http://localhost:5173/login");
+      return res.status(200).json({ message: "Logged out successfully" });
     });
   } catch (error) {
     console.error("Error during logout:", error);

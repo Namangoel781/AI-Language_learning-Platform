@@ -9,10 +9,13 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Add a loading state
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -31,23 +34,38 @@ const Navbar = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      axios.get("http://localhost:3000/refresh-session", {
-        withCredentials: true,
-      });
+      if (user) {
+        axios.get("http://localhost:3000/refresh-session", {
+          withCredentials: true,
+        });
+      }
     }, 30 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const handleLogout = async () => {
+    const confirmLogout = window.confirm("Are you sure you want to log out?");
+    if (!confirmLogout) return;
+
     try {
-      await axios.get("http://localhost:3000/auth/logout", {
-        withCredentials: true,
+      setIsLoggingOut(true);
+      const response = await axios.get("http://localhost:3000/auth/logout", {
+        withCredentials: true, // Ensure cookies are sent with the request
       });
-      setUser(null);
-      window.location.href = "/login";
+
+      if (response.status === 200) {
+        // Clear user data and navigate after logout
+        setUser(null);
+        navigate("/login", { replace: true });
+      } else {
+        alert("Failed to log out. Please try again.");
+      }
     } catch (error) {
       console.error("Error logging out:", error);
+      alert("An error occurred during logout. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -111,10 +129,13 @@ const Navbar = () => {
                 <span className="text-gray-200 font-medium">{user.name}</span>
                 <button
                   onClick={handleLogout}
-                  className="text-gray-300 hover:text-red-400 px-3 py-2 rounded-md text-md font-medium flex items-center transition"
+                  disabled={isLoggingOut}
+                  className={`${
+                    isLoggingOut ? "cursor-not-allowed" : ""
+                  } text-gray-300 hover:text-red-400 px-3 py-2 rounded-md text-md font-medium flex items-center transition`}
                 >
                   <LogOut className="w-5 h-5 mr-1" />
-                  <span>Logout</span>
+                  <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
                 </button>
               </div>
             ) : (
@@ -167,10 +188,13 @@ const Navbar = () => {
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="text-gray-300 hover:text-red-400 px-3 py-2 rounded-md text-md font-medium flex items-center transition"
+                  disabled={isLoggingOut} // Disable button when logging out
+                  className={`${
+                    isLoggingOut ? "cursor-not-allowed" : ""
+                  } text-gray-300 hover:text-red-400 px-3 py-2 rounded-md text-md font-medium flex items-center transition`}
                 >
                   <LogOut className="w-5 h-5 mr-1" />
-                  <span>Logout</span>
+                  <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
                 </button>
               </div>
             ) : (

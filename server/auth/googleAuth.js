@@ -4,10 +4,9 @@ const client = require("../redis");
 const { v4: uuidv4 } = require("uuid"); // For generating UUID tokens
 require("dotenv").config();
 const { Pool } = require("pg");
-// const { supabase } = require("../supabase");
 
 const pool = new Pool({
-  user: process.env.DATABASE_USER, // Replace with your PostgreSQL username
+  user: process.env.DATABASE_USER,
   host: process.env.DATABASE_HOST,
   database: "AI-Language-Platform",
   password: process.env.DATABASE_PASSWORD,
@@ -35,17 +34,15 @@ passport.use(
 
         if (!currentUser) {
           const insertQuery = `
-            INSERT INTO users (email, name, native_language, learning_language, needs_language_setup)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO users (email, name, native_language, learning_language)
+            VALUES ($1, $2, $3, $4)
             RETURNING *;
           `;
-          const insertValues = [email, name, null, null, true];
+          const insertValues = [email, name, null, null];
           const insertResult = await pool.query(insertQuery, insertValues);
 
           currentUser = insertResult.rows[0];
         }
-
-        const { id, needs_language_setup } = currentUser;
 
         // Generate session token and store in Redis
         const sessionToken = uuidv4();
@@ -59,7 +56,6 @@ passport.use(
         return done(null, {
           ...currentUser,
           sessionToken,
-          needsLanguageSetup: needs_language_setup,
         });
       } catch (err) {
         console.error("Error in Google Strategy:", err);

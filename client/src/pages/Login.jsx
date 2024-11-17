@@ -34,9 +34,9 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-500">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-sm w-full">
-        <h2 className="text-3xl font-bold text-center text-gray-700 mb-6">
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-black via-slate-800 to-gray-800">
+      <div className=" p-8 rounded-lg shadow-slate-900 shadow-lg max-w-sm w-full">
+        <h2 className="text-3xl font-bold text-center text-white mb-6">
           Login with Google
         </h2>
         <button

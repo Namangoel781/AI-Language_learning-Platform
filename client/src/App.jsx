@@ -14,10 +14,6 @@ import { VideoPlayer } from "./pages/LessonPlayer";
 import AudioRecorder from "./pages/AudioRecorder";
 
 const App = () => {
-  const [formData, setFormData] = useState({
-    nativeLanguage: "",
-    learningLanguage: "",
-  });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,16 +27,18 @@ const App = () => {
             withCredentials: true,
           }
         );
-        const userData = response.data.user;
         setIsAuthenticated(response.data.isAuthenticated);
-        setUser({
-          ...userData,
-          needsLanguageSetup: userData.needs_language_setup,
-        });
+        if (response.data.isAuthenticated) {
+          setUser({
+            ...response.data.user,
+            needsLanguageSetup: response.data.user.needs_language_setup,
+          });
+        } else {
+          setUser(null); // Clear user data when not authenticated
+        }
       } catch (error) {
-        console.error("Error checking auth status:", error);
-        setUser(null);
         setIsAuthenticated(false);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -48,39 +46,6 @@ const App = () => {
 
     checkAuthStatus();
   }, []);
-
-  useEffect(() => {
-    const completeLanguageSetup = async () => {
-      if (user?.needsLanguageSetup) {
-        try {
-          // Call the complete language setup API
-          await axios.post(
-            "http://localhost:3000/api/complete-language-setup",
-            {
-              userId: user.id,
-              nativeLanguage: formData.nativeLanguage,
-              learningLanguage: formData.learningLanguage,
-            },
-            { withCredentials: true }
-          );
-
-          // Update the user state to reflect the changes
-          setUser((prevUser) => ({
-            ...prevUser,
-            needsLanguageSetup: false,
-          }));
-
-          console.log("Language setup completed.");
-        } catch (error) {
-          console.error("Error completing language setup:", error);
-        }
-      }
-    };
-
-    if (isAuthenticated && user?.needsLanguageSetup) {
-      completeLanguageSetup();
-    }
-  }, [isAuthenticated, user, formData]);
 
   if (loading) {
     return (
@@ -102,73 +67,30 @@ const App = () => {
         <Route
           path="/select-language"
           element={
-            isAuthenticated && user?.needsLanguageSetup ? (
-              <LanguageSelection
-                formData={formData}
-                setFormData={setFormData}
-              />
-            ) : isAuthenticated ? (
-              <Navigate to="/" />
+            isAuthenticated ? (
+              <LanguageSelection />
             ) : (
-              <Navigate to="/login" />
+              <Navigate to={isAuthenticated ? "/" : "/login"} />
             )
           }
         />
         <Route
           path="/"
-          element={
-            isAuthenticated ? (
-              user?.needsLanguageSetup ? (
-                <Navigate to="/select-language" />
-              ) : (
-                <Home />
-              )
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+          element={isAuthenticated ? <Home /> : <Navigate to="/login" />}
         />
         <Route
           path="/practice-1"
           element={
-            isAuthenticated ? (
-              user?.needsLanguageSetup ? (
-                <Navigate to="/select-language" />
-              ) : (
-                <AudioRecorder />
-              )
-            ) : (
-              <Navigate to="/login" />
-            )
+            isAuthenticated ? <AudioRecorder /> : <Navigate to="/login" />
           }
         />
         <Route
           path="/lessons"
-          element={
-            isAuthenticated ? (
-              user?.needsLanguageSetup ? (
-                <Navigate to="/select-language" />
-              ) : (
-                <LessonList />
-              )
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+          element={isAuthenticated ? <LessonList /> : <Navigate to="/login" />}
         />
         <Route
           path="/video/:id"
-          element={
-            isAuthenticated ? (
-              user?.needsLanguageSetup ? (
-                <Navigate to="/select-language" />
-              ) : (
-                <VideoPlayer />
-              )
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+          element={isAuthenticated ? <VideoPlayer /> : <Navigate to="/login" />}
         />
         <Route path="/login" element={<Login />} />
       </Routes>
