@@ -13,7 +13,8 @@ const redisClient = require("./redis");
 
 const authRoutes = require("./routes/authRoute");
 const userRoutes = require("./routes/userRoutes");
-const lessonRoutes = require("./routes/lessonsRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+const videoRoutes = require("./routes/videoRoute");
 
 const app = express();
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
@@ -72,88 +73,8 @@ if (process.env.NODE_ENV === "production") {
 // API Routes
 app.use("/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/lessons", lessonRoutes);
-
-// app.post("/api/complete-language-setup", async (req, res) => {
-//   const { userId, nativeLanguage, learningLanguage } = req.body;
-
-//   // Check if required fields are provided
-//   if (!userId || !nativeLanguage || !learningLanguage) {
-//     console.error("Missing required fields:", {
-//       userId,
-//       nativeLanguage,
-//       learningLanguage,
-//     });
-//     return res.status(400).json({
-//       error: "User ID, native language, and learning language are required.",
-//     });
-//   }
-
-//   try {
-//     // Query the database to find user by userId
-//     const userResult = await pool.query("SELECT * FROM users WHERE id = $1", [
-//       userId,
-//     ]);
-
-//     // Check if user exists
-//     if (userResult.rows.length === 0) {
-//       console.error("User not found:", { userId });
-//       return res.status(404).json({ error: "User not found." });
-//     }
-
-//     const user = userResult.rows[0]; // Get the first user from the result
-//     console.log("User found:", user);
-
-//     // Check if both nativeLanguage and learningLanguage are provided
-//     if (nativeLanguage && learningLanguage) {
-//       // Log the language values before the update to verify
-//       console.log("Updating user languages:", {
-//         nativeLanguage,
-//         learningLanguage,
-//       });
-
-//       // Update the user’s languages and set needs_language_setup to false
-//       const updateResult = await pool.query(
-//         "UPDATE users SET native_language = $1, learning_language = $2, needs_language_setup = $3 WHERE id = $4 RETURNING *",
-//         [nativeLanguage, learningLanguage, false, userId]
-//       );
-
-//       // Log the update query result to verify success
-//       console.log("Update result:", updateResult.rows);
-
-//       // Check if the update was successful
-//       if (updateResult.rows.length === 0) {
-//         console.error("Failed to update user:", { userId });
-//         return res
-//           .status(500)
-//           .json({ error: "Failed to update user in the database." });
-//       }
-
-//       // Successfully updated
-//       console.log("User language setup completed:", updateResult.rows[0]);
-
-//       // Respond with success message and updated user data
-//       return res.status(200).json({
-//         message: "Language setup completed successfully.",
-//         user: updateResult.rows[0], // Updated user
-//       });
-//     } else {
-//       // If either nativeLanguage or learningLanguage is missing, don't change needs_language_setup
-//       console.error("Invalid language data:", {
-//         nativeLanguage,
-//         learningLanguage,
-//       });
-//       return res.status(400).json({
-//         error: "Both native language and learning language must be provided.",
-//       });
-//     }
-//   } catch (error) {
-//     console.error("Error while completing language setup:", error);
-//     return res
-//       .status(500)
-//       .json({ error: "An error occurred while completing language setup." });
-//   }
-// });
+app.use("/api/courses", courseRoutes);
+app.use("/api/videos", videoRoutes);
 
 app.get(
   "/auth/google/callback",

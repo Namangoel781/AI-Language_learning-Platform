@@ -84,14 +84,7 @@ const App = () => {
             isAuthenticated ? <AudioRecorder /> : <Navigate to="/login" />
           }
         />
-        <Route
-          path="/lessons"
-          element={isAuthenticated ? <LessonList /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/video/:id"
-          element={isAuthenticated ? <VideoPlayer /> : <Navigate to="/login" />}
-        />
+
         <Route path="/login" element={<Login />} />
       </Routes>
     </Router>

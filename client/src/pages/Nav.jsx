@@ -110,13 +110,7 @@ const Navbar = () => {
               <Languages className="w-5 h-5 mr-1" />
               <span>Language</span>
             </a>
-            <a
-              href="/lessons"
-              className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-md font-medium flex items-center transition"
-            >
-              <BookCheck className="w-5 h-5 mr-1" />
-              <span>Lessons</span>
-            </a>
+
             <a
               href="/practice-1"
               className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-md font-medium flex items-center transition"
